@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  atlas_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: marketing_saas
+    ports:
+      - "5432:5432"
+    volumes:
+      - atlas_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U saas_user -d marketing_saas" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  atlas_redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  atlas_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - ATLAS_DATABASE_URL=postgresql+asyncpg://saas_user:saas_password@atlas_db:5432/marketing_saas
+      - REDIS_URL=redis://atlas_redis:6379/1
+    depends_on:
+      atlas_db:
+        condition: service_healthy
+      atlas_redis:
+        condition: service_started
+
+  atlas_celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A backend.services.atlas.celery_app worker --loglevel=info
+    environment:
+      - ATLAS_DATABASE_URL=postgresql+asyncpg://saas_user:saas_password@atlas_db:5432/marketing_saas
+      - REDIS_URL=redis://atlas_redis:6379/1
+    depends_on:
+      atlas_db:
+        condition: service_healthy
+      atlas_redis:
+        condition: service_started
+
+  atlas_celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A backend.services.atlas.celery_app beat --loglevel=info
+    environment:
+      - REDIS_URL=redis://atlas_redis:6379/1
+    depends_on:
+      atlas_redis:
+        condition: service_started
+
+volumes:
+  atlas_db_data:
