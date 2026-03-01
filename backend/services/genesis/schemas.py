@@ -80,6 +80,7 @@ class GenesisConstraintsSchema(BaseModel):
     auto_execution_enabled: bool
     creative_sandbox_required: bool
     landing_page_auto_edit_allowed: bool
+    shadow_mode_enabled: bool = False
 
 # ================= API Schemas =================
 # Schemas defining exact PUT structure required to interact with genesis endpoints.

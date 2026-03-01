@@ -57,7 +57,13 @@ class CaptainExecuteEngine:
                 continue
                 
             # Layer 3: Execute Action
-            response = await self.router.dispatch_action(action)
+            shadow_mode = genesis_constraints.get("shadow_mode_enabled", False)
+            if shadow_mode:
+                 response = {"platform_ack_id": f"shadow_sim_{c_id}", "status": "simulated"}
+                 action["simulated"] = True
+                 logger.info(f"SHADOW MODE ENABLED: Simulating action {action.get('action_type')} for {c_id}")
+            else:
+                 response = await self.router.dispatch_action(action)
             
             # Track state payload
             exec_record = {
