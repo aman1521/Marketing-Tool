@@ -4,6 +4,9 @@ from fastapi import APIRouter, Header, HTTPException, Depends
 
 from backend.marketing_os_app.auth.rbac import RBAC
 from backend.marketing_os_app.api_gateway.router import authenticate_tenant
+from backend.marketing_os_app.feature_flags.feature_manager import FeatureManager
+
+feature_engine = FeatureManager()
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,12 @@ async def approve_tuning(parameter_name: str, requested_value: float, context: D
     """
     role = context["role"]
     cid = context["company_id"]
+    system_mode = context["system_mode"]
     
+    if not feature_engine.can_approve_calibration(system_mode, role):
+        logger.error(f"AUDIT TRAIL: Tenant {cid} - Role {role} with mode {system_mode} attempted unauthorized calibration approval.")
+        raise HTTPException(status_code=403, detail="Your system mode or role does not permit manual calibration approvals.")
+        
     RBAC.enforce_role(role, "ADMIN")
     logger.info(f"AUDIT TRAIL: Tenant {cid} - Tuning {parameter_name} to {requested_value} approved.")
     

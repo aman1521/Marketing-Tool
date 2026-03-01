@@ -14,14 +14,14 @@ dashboard_router = APIRouter()
 feature_engine = FeatureManager()
 status_engine = AutonomyStatusService()
 
-def authenticate_tenant(x_company_id: str = Header(...), x_role: str = Header(...), x_plan: str = Header(...)) -> Dict[str, str]:
+def authenticate_tenant(x_company_id: str = Header(...), x_role: str = Header(...), x_plan: str = Header(...), x_system_mode: str = Header(default="saas_standard")) -> Dict[str, str]:
     """
     Mock JWT extractor. Extracts strictly validated multi-tenant scopes securely.
     """
     if not x_company_id or not x_role:
         raise HTTPException(status_code=401, detail="Unauthorized API invocation.")
         
-    return {"company_id": x_company_id, "role": x_role, "active_plan": x_plan}
+    return {"company_id": x_company_id, "role": x_role, "active_plan": x_plan, "system_mode": x_system_mode}
 
 @dashboard_router.get("/api/v1/dashboard/autonomy")
 async def fetch_tenant_dashboard(context: Dict[str, str] = Depends(authenticate_tenant)):
@@ -33,9 +33,10 @@ async def fetch_tenant_dashboard(context: Dict[str, str] = Depends(authenticate_
     # Strictly bind inputs utilizing Context dict mappings
     cid = context["company_id"]
     role = context["role"]
+    system_mode = context["system_mode"]
     
     # Execute Core Logic Wrapper
-    dashboard_payload = await status_engine.get_dashboard(company_id=cid, access_role=role)
+    dashboard_payload = await status_engine.get_dashboard(company_id=cid, access_role=role, system_mode=system_mode)
     
     return dashboard_payload
 
@@ -46,9 +47,10 @@ async def fetch_creative_insights(context: Dict[str, str] = Depends(authenticate
     """
     cid = context["company_id"]
     plan = context["active_plan"]
+    system_mode = context["system_mode"]
     
     # Gatecheck!
-    if not feature_engine.evaluate_access(cid, plan, "hawkeye_access"):
+    if not feature_engine.evaluate_access(cid, system_mode, plan, "hawkeye_access"):
         raise HTTPException(status_code=403, detail="Hawkeye Intelligence requires the Assisted Mode plan or higher.")
         
     # Standard 200 Mock

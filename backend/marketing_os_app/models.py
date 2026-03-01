@@ -12,6 +12,11 @@ class PlanTier(str, enum.Enum):
     FULL_BOUNDED = "full_bounded_autonomy"
     ENTERPRISE = "enterprise"
 
+class SystemMode(str, enum.Enum):
+    AGENCY_ALPHA = "agency_alpha"
+    SAAS_STANDARD = "saas_standard"
+    ENTERPRISE_API = "enterprise_api"
+
 class TenantRegistryModel(Base):
     """
     Absolute scoping mechanism. Every external query MUST strictly map to a company_id here.
@@ -23,6 +28,7 @@ class TenantRegistryModel(Base):
     tenant_name = Column(String, nullable=False)
     
     # Billing & Gating Reference
+    system_mode = Column(Enum(SystemMode), default=SystemMode.SAAS_STANDARD)
     active_plan_tier = Column(Enum(PlanTier), default=PlanTier.SHADOW_ONLY)
     shadow_mode_forced = Column(Boolean, default=True) # Overrides Genesis natively if True
     

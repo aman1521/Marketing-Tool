@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 # Mocks
 from backend.services.sentinel.risk_dashboard_engine import RiskDashboardEngine
+from backend.marketing_os_app.feature_flags.feature_manager import FeatureManager
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,9 @@ class AutonomyStatusService:
     
     def __init__(self):
         self.sentinel = RiskDashboardEngine()
+        self.features = FeatureManager()
 
-    async def get_dashboard(self, company_id: str, access_role: str, db_stub: AsyncSession = None) -> Dict[str, Any]:
+    async def get_dashboard(self, company_id: str, access_role: str, system_mode: str = "saas_standard", db_stub: AsyncSession = None) -> Dict[str, Any]:
         """
         Securely restricts cross-company queries implicitly.
         If role is VIEWER, mock obfuscating sensitive financial budget limits conditionally.
@@ -44,4 +46,8 @@ class AutonomyStatusService:
             "pending_calibration_suggestions": 1
         }
         
+        exposure = self.features.get_exposure_level(system_mode)
+        if exposure in ["RAW_SIGNALS", "STRUCTURED_FIREHOSE"]:
+             dashboard_json["raw_diagnostics"] = {"variance_matrix": variances, "uptime_health": uptime}
+             
         return dashboard_json

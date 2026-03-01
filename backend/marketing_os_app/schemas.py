@@ -18,6 +18,7 @@ class TenantContext(BaseModel):
     user_id: str
     role: str
     active_plan: str
+    system_mode: str = "saas_standard"
 
 class AutonomyDashboardResponse(BaseModel):
     company_id: str
