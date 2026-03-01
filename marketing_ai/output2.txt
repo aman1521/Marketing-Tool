@@ -1,0 +1,6 @@
+1. Crawling mock competitor: https://example.com
+Failed to fetch https://example.com: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1035)
+   Found 0 pages.
+2. Cleaning and Chunking...
+   Generated 0 semantic chunks.
+   No text chunks to analyze. Exiting.
