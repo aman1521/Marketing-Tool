@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from shared.models.mongo import init_mongo, close_mongo
 from shared.models.beanie_models import StrategyOutput, Business
-from backend.intelligence_orchestrator.orchestrator import IntelligenceOrchestrator
+from backend.services.captain.diagnose.orchestrator_main import IntelligenceOrchestrator
 
 # ==========================================
 # Phase 7.2 Continuous Strategy Regeneration

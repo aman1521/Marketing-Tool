@@ -37,7 +37,7 @@ RATE_LIMIT_REQUESTS = 1000
 RATE_LIMIT_WINDOW_SECONDS = 3600
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth_service:8001")
 BUSINESS_SERVICE_URL = os.getenv("BUSINESS_SERVICE_URL", "http://business_service:8002")
-PLATFORM_INTEGRATION_URL = os.getenv("PLATFORM_INTEGRATION_URL", "http://platform_integration:8003")
+ATLAS_COLLECT_URL = os.getenv("ATLAS_COLLECT_URL", "http://atlas_collect:8003")
 ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://ml_service:8004")
 BEHAVIOR_ANALYZER_URL = os.getenv("BEHAVIOR_ANALYZER_URL", "http://behavior_analyzer_service:8009")
 ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics_service:8010")
@@ -377,7 +377,7 @@ async def proxy_analytics(path: str, request: Request, current_user: dict = Depe
 # ============= Platform Integration Routes (Proxy) =============
 @app.api_route("/api/v1/platforms/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], tags=["Platform Integrations"])
 async def proxy_platforms(path: str, request: Request, current_user: dict = Depends(verify_jwt_token)):
-    return await proxy_request(request, f"{PLATFORM_INTEGRATION_URL}/api/v1/platforms/{path}")
+    return await proxy_request(request, f"{ATLAS_COLLECT_URL}/api/v1/platforms/{path}")
 
 
 # ============= Error Handlers =============

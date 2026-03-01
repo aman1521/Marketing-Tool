@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SERVICE_NAME = "Intelligence Orchestrator"
+SERVICE_NAME = "Captain Diagnose Orchestrator"
 API_VERSION = "0.1.0"
 import os
 import sys
@@ -24,9 +24,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from shared.models.mongo import init_mongo, close_mongo
 import shared.models.beanie_models as bm
 
-from backend.intelligence_orchestrator.llm_strategy import LLMStrategyGenerator
+from backend.services.captain.strategy.llm_strategy import LLMStrategyGenerator
 
-DECISION_ENGINE_URL = os.getenv("DECISION_ENGINE_URL", "http://decision_engine:8007")
+CAPTAIN_DIAGNOSE_URL = os.getenv("CAPTAIN_DIAGNOSE_URL", "http://captain_diagnose:8007")
 
 llm_generator = LLMStrategyGenerator(provider="openai")
 
@@ -111,7 +111,7 @@ async def merge_intelligence(business_id: str, request: OrchestrationRequest) ->
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{DECISION_ENGINE_URL}/api/v1/decisions/evaluate",
+                f"{CAPTAIN_DIAGNOSE_URL}/api/v1/decisions/evaluate",
                 params={"business_id": business_id},
                 json=decision_input,
                 timeout=5.0

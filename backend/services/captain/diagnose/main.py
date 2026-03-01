@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SERVICE_NAME = "Decision Engine"
+SERVICE_NAME = "Captain Diagnose"
 API_VERSION = "0.1.0"
 import os
 import sys
@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from shared.models.mongo import init_mongo, close_mongo
 import shared.models.beanie_models as bm
 
-from backend.decision_engine.rules import DeterministicRulesEngine
+from backend.services.captain.risk.rules import DeterministicRulesEngine
 
 rules_engine = DeterministicRulesEngine()
 

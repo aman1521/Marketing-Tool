@@ -5,8 +5,8 @@ import httpx
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from backend.intelligence_orchestrator.main import merge_intelligence, OrchestrationRequest
-from backend.intelligence_orchestrator.llm_strategy import LLMStrategyGenerator
+from backend.services.captain.diagnose.orchestrator_main import merge_intelligence, OrchestrationRequest
+from backend.services.captain.strategy.llm_strategy import LLMStrategyGenerator
 
 async def run_tests():
     print("--- Testing Intelligence Orchestrator ---")

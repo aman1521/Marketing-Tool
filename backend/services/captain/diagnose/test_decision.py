@@ -4,7 +4,7 @@ import sys
 # Add project root to sys path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from backend.decision_engine.rules import DeterministicRulesEngine
+from backend.services.captain.risk.rules import DeterministicRulesEngine
 
 def run_tests():
     print("--- Testing Decision Engine Rules ---")
