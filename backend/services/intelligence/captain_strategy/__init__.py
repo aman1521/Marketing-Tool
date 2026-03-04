@@ -10,6 +10,7 @@ from .opportunity_detector import OpportunityDetector
 from .threat_detector import ThreatDetector
 from .strategy_generator import StrategyGenerator
 from .outcome_predictor import OutcomePredictor
+from .execution_router import ExecutionRouter
 
 logger = logging.getLogger(__name__)
 
@@ -24,5 +25,6 @@ __all__ = [
     "OpportunityDetector",
     "ThreatDetector",
     "StrategyGenerator",
-    "OutcomePredictor"
+    "OutcomePredictor",
+    "ExecutionRouter"
 ]
