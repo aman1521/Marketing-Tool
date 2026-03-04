@@ -1,130 +1,204 @@
-"use client";
+'use client';
+import { useEffect, useState } from 'react';
+import Sidebar from '@/components/layout/Sidebar';
+import { companiesAPI, connectorsAPI } from '@/lib/api';
+import { Building2, Plus, Loader2, Link2, ChevronRight, RefreshCw, X } from 'lucide-react';
 
-import React from "react";
-import { ShieldCheck, Plus, ArrowRight, Share2, Building2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+type Company = { id: string; name: string; industry: string; target_audience?: string };
+type Platform = { platform: string; status: string; last_sync: string | null };
 
-export default function CompaniesDashboard() {
-    const router = useRouter();
+const PLATFORM_META: Record<string, { logo: string; color: string }> = {
+    meta: { logo: '𝕄', color: '#1877f2' },
+    google: { logo: 'G', color: '#4285f4' },
+    tiktok: { logo: '⧫', color: '#fe2c55' },
+    linkedin: { logo: 'in', color: '#0a66c2' },
+    twitter: { logo: '𝕏', color: '#000000' },
+    reddit: { logo: '⬤', color: '#ff4500' },
+};
 
-    // In a real app we'd fetch these from the zustand store -> FastAPI GET /companies
-    const mockCompanies = [
-        { id: '123_demo', name: 'Acme Corp', industry: 'E-commerce', conn_count: 3, riskLevel: 'Aggressive' },
-        { id: '456_demo', name: 'StartUp Inc', industry: 'SaaS', conn_count: 1, riskLevel: 'Conservative' }
-    ];
+export default function CompaniesPage() {
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [form, setForm] = useState({ name: '', industry: '', target_audience: '' });
+    const [error, setError] = useState('');
+    const [selected, setSelected] = useState<Company | null>(null);
+    const [platforms, setPlatforms] = useState<Platform[]>([]);
+    const [loadingPlat, setLoadingPlat] = useState(false);
 
-    // Framer motion variants for grid staggering
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await companiesAPI.list();
+            setCompanies(res.data || []);
+        } catch { setCompanies([]); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => { load(); }, []);
+
+    const selectCompany = async (c: Company) => {
+        setSelected(c);
+        setLoadingPlat(true);
+        try {
+            const res = await connectorsAPI.getPlatforms(c.id);
+            setPlatforms(res.data || []);
+        } catch { setPlatforms([]); }
+        finally { setLoadingPlat(false); }
+    };
+
+    const createCompany = async (e: React.FormEvent) => {
+        e.preventDefault(); setCreating(true); setError('');
+        try {
+            await companiesAPI.create(form);
+            setShowModal(false);
+            setForm({ name: '', industry: '', target_audience: '' });
+            load();
+        } catch (err: any) {
+            setError(err?.response?.data?.detail || 'Failed to create company');
+        } finally { setCreating(false); }
+    };
+
+    const connectPlatform = async (platform: string) => {
+        if (!selected) return;
+        try {
+            const res = await connectorsAPI.connectPlatform(platform, selected.id);
+            const url = res.data?.authorization_url;
+            if (url) window.location.href = url;
+        } catch (err: any) {
+            alert(err?.response?.data?.detail || 'Connection failed');
         }
     };
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-    };
-
     return (
-        <div className="p-8 lg:p-12 min-h-screen bg-slate-50 text-slate-800">
-            <motion.header
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex justify-between items-center mb-10 pb-6 border-b border-slate-200"
-            >
-                <div>
-                    <h1 className="text-4xl font-extrabold text-slate-900 mb-2">My Companies</h1>
-                    <p className="text-slate-500">Manage connections and view active AI orchestration environments.</p>
-                </div>
-                <div>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="bg-indigo-600 hover:bg-indigo-700 transition flex items-center gap-2 text-white font-medium px-5 py-3 rounded-lg shadow-sm"
-                    >
-                        <Plus size={20} /> Create New Company
-                    </motion.button>
-                </div>
-            </motion.header>
+        <div style={{ display: 'flex' }}>
+            <Sidebar />
+            <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh', padding: '2rem', background: 'var(--bg-base)' }}>
 
-            <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-            >
-                {mockCompanies.map((c) => (
-                    <motion.div
-                        key={c.id}
-                        variants={itemVariants}
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 hover:shadow-xl transition-shadow group relative overflow-hidden flex flex-col h-full"
-                    >
-                        {/* Decoration */}
-                        <div className="h-1.5 absolute top-0 left-0 right-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                        <div className="flex justify-between items-start mb-6 pt-2">
-                            <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">{c.industry}</div>
-                                <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">{c.name}</h3>
-                            </div>
-                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-2.5 rounded-xl text-indigo-600 border border-indigo-100/50 shadow-inner" title="Connected Platforms">
-                                <Building2 size={24} strokeWidth={1.5} />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between items-center border-t border-slate-100 pt-5 mt-2 mb-6">
-                            <div className="text-sm border border-slate-200 px-3 py-1 rounded-full text-slate-600 font-medium">
-                                {c.conn_count} Connections
-                            </div>
-                            <div className="text-sm border border-emerald-200 bg-emerald-50 px-3 py-1 rounded-full text-emerald-700 font-bold flex items-center gap-1">
-                                <ShieldCheck size={14} /> Risk: {c.riskLevel}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mt-auto">
-                            <button
-                                onClick={() => router.push(`/companies/${c.id}/assets/meta`)}
-                                className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition py-2 rounded-lg font-semibold flex items-center justify-center gap-1 text-sm border border-indigo-100"
-                            >
-                                View Ads
-                            </button>
-                            <button
-                                onClick={() => router.push(`/companies/${c.id}/assets/tiktok`)}
-                                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition py-2 rounded-lg font-semibold flex items-center justify-center gap-1 text-sm border border-emerald-100"
-                            >
-                                View Social
-                            </button>
-                            <button
-                                onClick={() => router.push(`/companies/${c.id}`)}
-                                className="col-span-2 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition py-2 rounded-lg font-semibold flex items-center justify-center gap-1 text-sm border border-slate-200"
-                            >
-                                All Settings <ArrowRight size={16} />
-                            </button>
-                        </div>
-                    </motion.div>
-                ))}
-
-                {/* Empty State / Add Card */}
-                <motion.div
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02, backgroundColor: "#f8fafc" }}
-                    whileTap={{ scale: 0.98 }}
-                    className="border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-slate-50/50 cursor-pointer min-h-[300px] group"
-                >
-                    <div className="bg-white p-4 rounded-full text-indigo-500 mb-4 shadow-sm border border-slate-100 group-hover:bg-indigo-50 transition-colors">
-                        <Plus size={32} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                    <div>
+                        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}><span className="gradient-text">Companies</span></h1>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 4 }}>Manage tenants and platform connections</p>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">Deploy Workspace</h3>
-                    <p className="text-slate-500 text-sm max-w-[200px]">Spin up a dedicated AI container for a specific brand.</p>
-                </motion.div>
-            </motion.div>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button className="btn-ghost" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+                        </button>
+                        <button className="btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Plus size={14} /> New Company
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.5fr' : '1fr', gap: '1.5rem' }}>
+                    {/* Company List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {loading ? (
+                            [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 80 }} />)
+                        ) : companies.length === 0 ? (
+                            <div className="glass" style={{ padding: '3rem', textAlign: 'center' }}>
+                                <Building2 size={40} color="var(--text-muted)" style={{ margin: '0 auto 1rem' }} />
+                                <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>No companies yet</p>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 6 }}>Create your first company to get started</p>
+                                <button className="btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <Plus size={14} /> Create Company
+                                </button>
+                            </div>
+                        ) : companies.map(c => (
+                            <div key={c.id} onClick={() => selectCompany(c)} className="glass glass-hover"
+                                style={{ padding: '1.1rem 1.25rem', cursor: 'pointer', borderColor: selected?.id === c.id ? 'rgba(99,102,241,0.4)' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 800, color: 'white' }}>
+                                        {c.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{c.name}</p>
+                                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>{c.industry}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={16} color="var(--text-muted)" />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Platform Panel */}
+                    {selected && (
+                        <div className="glass animate-slide-up" style={{ padding: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Link2 size={16} color="var(--indigo)" />
+                                    <h2 style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                        {selected.name} · Platforms
+                                    </h2>
+                                </div>
+                                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
+                            </div>
+
+                            {loadingPlat ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="skeleton" style={{ height: 58 }} />)}
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    {(['meta', 'google', 'tiktok', 'linkedin', 'twitter', 'reddit']).map(p => {
+                                        const plat = platforms.find(pl => pl.platform === p);
+                                        const connected = plat?.status === 'connected';
+                                        const meta = PLATFORM_META[p];
+                                        return (
+                                            <div key={p} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: 10, background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{ width: 34, height: 34, borderRadius: 8, background: connected ? `${meta.color}22` : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 800, color: connected ? meta.color : 'var(--text-muted)' }}>
+                                                        {meta.logo}
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{p}</p>
+                                                        <p style={{ fontSize: '0.68rem', color: connected ? '#34d399' : 'var(--text-muted)' }}>
+                                                            {connected ? `Connected · synced ${plat?.last_sync ? new Date(plat.last_sync).toLocaleDateString() : 'recently'}` : 'Not connected'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {connected ? (
+                                                    <a href={`/companies/${selected.id}?platform=${p}`} className="btn-ghost" style={{ fontSize: '0.72rem', padding: '0.3rem 0.75rem', textDecoration: 'none' }}>View Data</a>
+                                                ) : (
+                                                    <button className="btn-primary" onClick={() => connectPlatform(p)} style={{ fontSize: '0.72rem', padding: '0.3rem 0.75rem' }}>Connect</button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Create Company Modal */}
+                {showModal && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
+                        <div className="glass animate-slide-up" style={{ width: '100%', maxWidth: 440, padding: '2rem', margin: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                <h2 style={{ fontWeight: 700, fontSize: '1.1rem' }}>Create Company</h2>
+                                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
+                            </div>
+                            <form onSubmit={createCompany} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {(['name', 'industry', 'target_audience'] as const).map(field => (
+                                    <div key={field}>
+                                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>{field.replace('_', ' ')}</label>
+                                        <input className="input-dark" value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} placeholder={field === 'name' ? 'Acme Corp' : field === 'industry' ? 'eCommerce' : 'D2C Shoppers 25-35'} required />
+                                    </div>
+                                ))}
+                                {error && <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 8, padding: '0.65rem', fontSize: '0.8rem', color: '#fb7185' }}>{error}</div>}
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button type="button" className="btn-ghost" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancel</button>
+                                    <button type="submit" className="btn-primary" disabled={creating} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                        {creating ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : 'Create'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
