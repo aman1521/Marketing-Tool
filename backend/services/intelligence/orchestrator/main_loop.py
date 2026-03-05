@@ -13,6 +13,8 @@ from backend.services.intelligence.captain_strategy.captain import CaptainStrate
 from backend.services.intelligence.captain_strategy.execution_router import ExecutionRouter
 from backend.services.intelligence.strategy_council.council_orchestrator import StrategyCouncil
 from backend.services.intelligence.strategy_simulation.simulator import StrategySimulationEngine
+from backend.services.intelligence.marketing_knowledge.context_builder import KnowledgeContextBuilder
+from backend.services.intelligence.marketing_knowledge.retrieval_engine import RetrievalEngine
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +30,10 @@ class UnifiedIntelligenceOrchestrator:
         self.captain         = CaptainStrategy(db_session=self.db)
         self.simulator       = StrategySimulationEngine(db_session=self.db)
         self.router          = ExecutionRouter() # Usually receives Forge/Hawkeye interfaces
+        self.knowledge_ctx   = KnowledgeContextBuilder()
+        self.knowledge       = RetrievalEngine()
 
-    def execute_intelligence_loop(self, company_id: str, industry: str, current_campaigns: List[Dict]) -> Dict[str, Any]:
+    async def execute_intelligence_loop(self, company_id: str, industry: str, current_campaigns: List[Dict]) -> Dict[str, Any]:
         """
         The absolute core of the autonomous marketing OS. Runs periodically (e.g., hourly).
         """
@@ -45,7 +49,19 @@ class UnifiedIntelligenceOrchestrator:
         logger.info(f"[Orchestrator] Step 1 Complete: Snapshot generated {fused_matrix.get('momentum')} momentum.")
 
         # ---------------------------------------------------------
-        # 2. Multi-Agent Council (Debate)
+        # 2. Marketing Knowledge Engine (Retrieve LLM Playbooks)
+        # ---------------------------------------------------------
+        mke_context = self.knowledge_ctx.build_context(raw_context)
+        playbooks = await self.knowledge.retrieve_relevant_skills(mke_context)
+        
+        # We append the exact playbook schemas back into the matrix so the Agent Council
+        # can use them during the Debate Phase.
+        fused_matrix["active_playbooks"] = [p.name for p in playbooks]
+        
+        logger.info(f"[Orchestrator] Step 2 Complete: Loaded {len(playbooks)} relevant Marketing Playbooks.")
+
+        # ---------------------------------------------------------
+        # 3. Multi-Agent Council (Debate)
         # ---------------------------------------------------------
         council_decision = self.council.run_council(fused_matrix)
         
@@ -53,10 +69,10 @@ class UnifiedIntelligenceOrchestrator:
              logger.warning("[Orchestrator] Council proposed no actions. Cycle Terminated.")
              return {"status": "terminated", "reason": "no_council_consensus"}
 
-        logger.info(f"[Orchestrator] Step 2 Complete: Council synthesized {len(council_decision.final_actions)} actions. Confidence {council_decision.overall_confidence}")
+        logger.info(f"[Orchestrator] Step 3 Complete: Council synthesized {len(council_decision.final_actions)} actions. Confidence {council_decision.overall_confidence}")
 
         # ---------------------------------------------------------
-        # 3. Decision Layer (CaptainStrategy Brain)
+        # 4. Decision Layer (CaptainStrategy Brain)
         # ---------------------------------------------------------
         # Instead of Captain natively inferring Opps/Threats, we override it to use the Council's output
         # to format its proper Database object structs
@@ -68,10 +84,10 @@ class UnifiedIntelligenceOrchestrator:
             "actions": [a.model_dump() for a in council_decision.final_actions]
         }
         
-        logger.info("[Orchestrator] Step 3 Complete: Strategy formatted.")
+        logger.info("[Orchestrator] Step 4 Complete: Strategy formatted.")
 
         # ---------------------------------------------------------
-        # 4. Simulation Engine (Digital Twin Validation)
+        # 5. Simulation Engine (Digital Twin Validation)
         # ---------------------------------------------------------
         refined_actions = []
         for council_action in strategy_payload["actions"]:
@@ -98,10 +114,10 @@ class UnifiedIntelligenceOrchestrator:
              logger.error("[Orchestrator] Simulation Engine blocked all proposed actions due to risk physics.")
              return {"status": "blocked_by_safety"}
 
-        logger.info(f"[Orchestrator] Step 4 Complete: Simulation validated {len(refined_actions)} optimized actions.")
+        logger.info(f"[Orchestrator] Step 5 Complete: Simulation validated {len(refined_actions)} optimized actions.")
 
         # ---------------------------------------------------------
-        # 5. Execution Layer Routing
+        # 6. Execution Layer Routing
         # ---------------------------------------------------------
         # We dummy up the SQLAlchemy model object for the router
         from backend.services.intelligence.captain_strategy.models import RecommendedAction
@@ -116,7 +132,7 @@ class UnifiedIntelligenceOrchestrator:
              final_objs.append(model)
              
         routing_results = self.router.route_strategy(strategy_payload["strategy_id"], final_objs)
-        logger.info(f"[Orchestrator] Step 5 Complete: Dispatched Execution Payloads: {routing_results}")
+        logger.info(f"[Orchestrator] Step 6 Complete: Dispatched Execution Payloads: {routing_results}")
         
         return {
             "status": "success",

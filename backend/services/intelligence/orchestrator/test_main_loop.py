@@ -16,7 +16,8 @@ def orchestrator():
     orchestrator = UnifiedIntelligenceOrchestrator()
     return orchestrator
 
-def test_unified_intelligence_loop_end_to_end(orchestrator, monkeypatch):
+@pytest.mark.asyncio
+async def test_unified_intelligence_loop_end_to_end(orchestrator, monkeypatch):
     """
     Simulates a CRON trigger running the system across all 5 built Intelligence Engine Architectures.
     """
@@ -70,7 +71,7 @@ def test_unified_intelligence_loop_end_to_end(orchestrator, monkeypatch):
     
     # 2. Execute Pipeline 
     camp_mock = [{"id": "camp1", "spend": 1000}]
-    output = orchestrator.execute_intelligence_loop("test_corp", "ecommerce", camp_mock)
+    output = await orchestrator.execute_intelligence_loop("test_corp", "ecommerce", camp_mock)
     
     # 3. Assert End-to-End Mechanics
     assert output["status"] == "success"
