@@ -6,7 +6,7 @@ from pprint import pprint
 from backend.services.captain.diagnose.diagnosis_engine import CaptainDiagnosisEngine
 from backend.services.captain.execute.execution_engine import CaptainExecuteEngine
 from backend.services.atlas.signals.feature_engine import AtlasFeatureEngine
-from backend.services.genesis.schemas import GenesisConstraintsSchema
+from backend.services.safety_engine.schemas import GenesisConstraintsSchema
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("closed_loop_test")

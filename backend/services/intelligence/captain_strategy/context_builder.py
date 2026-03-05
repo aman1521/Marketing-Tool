@@ -14,10 +14,10 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
-from backend.services.memory.influence_controller import InfluenceController
-from backend.services.competitor.market_pressure_detector import MarketPressureDetector
-from backend.services.competitor.strategy_gap_analyzer import StrategyGapAnalyzer
-from backend.services.creative_genome.creative_strategy_engine import CreativeStrategyEngine
+from backend.services.intelligence.operator_memory.influence_controller import InfluenceController
+from backend.services.competitor_intelligence.market_pressure_detector import MarketPressureDetector
+from backend.services.competitor_intelligence.strategy_gap_analyzer import StrategyGapAnalyzer
+from backend.services.intelligence.creative_genome.creative_strategy_engine import CreativeStrategyEngine
 
 logger = logging.getLogger(__name__)
 
