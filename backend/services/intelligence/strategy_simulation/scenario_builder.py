@@ -24,8 +24,8 @@ class ScenarioBuilder:
         """
         logger.debug(f"[ScenarioBuilder] Creating matrices for {action.get('type')}")
         scenarios = []
-        action_type = action.get("type")
-        base_payload = action.get("payload", {})
+        action_type = action.get("action_type")
+        base_payload = action.get("parameters", action.get("payload", {}))
 
         if action_type == "SCALE_BUDGET":
             # Test different scaling thresholds looking for breakpoints
